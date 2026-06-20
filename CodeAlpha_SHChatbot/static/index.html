@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StoreHelp — FAQ Assistant</title>
+<style>
+  :root{
+    --ink:#1c1b1a;
+    --paper:#f6f3ee;
+    --panel:#ffffff;
+    --line:#e4ddd1;
+    --rust:#b5502f;
+    --rust-dark:#8e3d22;
+    --moss:#5c7a5e;
+    --muted:#8a8378;
+    --mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+    --serif: 'Source Serif 4', Georgia, serif;
+    --sans: 'Inter', -apple-system, sans-serif;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--paper);
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(28,27,26,0.06) 1px, transparent 0);
+    background-size: 22px 22px;
+    font-family:var(--sans);
+    color:var(--ink);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+  }
+
+  .app{
+    width:100%;
+    max-width:760px;
+    height:88vh;
+    max-height:840px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03), 0 18px 50px -20px rgba(28,27,26,0.25);
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+  }
+
+  /* ---- Header ---- */
+  .head{
+    padding:22px 26px 18px;
+    border-bottom:1px solid var(--line);
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:16px;
+  }
+  .head .eyebrow{
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--rust);
+    margin:0 0 6px;
+  }
+  .head h1{
+    font-family:var(--serif);
+    font-size:24px;
+    font-weight:600;
+    margin:0;
+    letter-spacing:-0.01em;
+  }
+  .head p{
+    margin:6px 0 0;
+    font-size:13px;
+    color:var(--muted);
+    max-width:38ch;
+  }
+  .status{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    font-family:var(--mono);
+    font-size:11px;
+    color:var(--moss);
+    white-space:nowrap;
+    margin-top:4px;
+  }
+  .status .dot{
+    width:7px;height:7px;border-radius:50%;
+    background:var(--moss);
+    box-shadow:0 0 0 3px rgba(92,122,94,0.18);
+  }
+
+  /* ---- Messages ---- */
+  .thread{
+    flex:1;
+    overflow-y:auto;
+    padding:22px 26px;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+  }
+  .thread::-webkit-scrollbar{width:8px;}
+  .thread::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px;}
+
+  .row{display:flex; gap:10px; max-width:88%;}
+  .row.user{align-self:flex-end; flex-direction:row-reverse;}
+  .row.bot{align-self:flex-start;}
+
+  .avatar{
+    width:26px;height:26px;flex:none;
+    border-radius:3px;
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--mono);font-size:10px;font-weight:700;
+    margin-top:2px;
+  }
+  .row.bot .avatar{background:var(--ink);color:var(--paper);}
+  .row.user .avatar{background:var(--rust);color:#fff;}
+
+  .bubble{
+    padding:11px 14px;
+    border-radius:3px;
+    font-size:14.5px;
+    line-height:1.5;
+  }
+  .row.bot .bubble{
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-top-left-radius:0;
+  }
+  .row.user .bubble{
+    background:var(--ink);
+    color:var(--paper);
+    border-top-right-radius:0;
+  }
+
+  .match-meta{
+    margin-top:8px;
+    padding-top:8px;
+    border-top:1px dashed var(--line);
+    font-family:var(--mono);
+    font-size:10.5px;
+    color:var(--muted);
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .match-meta .bar{
+    width:54px;height:4px;background:var(--line);
+    border-radius:2px;overflow:hidden;
+  }
+  .match-meta .bar i{
+    display:block;height:100%;background:var(--moss);
+  }
+
+  .row.bot .bubble.fallback{
+    border-color:#e7c9b8;
+    background:#fbf1ea;
+  }
+
+  /* ---- typing indicator ---- */
+  .typing{display:flex;gap:4px;align-items:center;padding:4px 0;}
+  .typing span{
+    width:5px;height:5px;border-radius:50%;
+    background:var(--muted);
+    animation:blink 1.2s infinite ease-in-out;
+  }
+  .typing span:nth-child(2){animation-delay:0.15s;}
+  .typing span:nth-child(3){animation-delay:0.3s;}
+  @keyframes blink{0%,80%,100%{opacity:0.25;}40%{opacity:1;}}
+
+  /* ---- Suggested chips ---- */
+  .chips{
+    padding:0 26px 14px;
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    border-top:1px solid var(--line);
+    padding-top:14px;
+  }
+  .chip{
+    font-family:var(--mono);
+    font-size:11.5px;
+    padding:6px 11px;
+    border:1px solid var(--line);
+    border-radius:20px;
+    background:var(--panel);
+    color:var(--ink);
+    cursor:pointer;
+    transition:border-color .15s, color .15s;
+  }
+  .chip:hover{border-color:var(--rust); color:var(--rust);}
+
+  /* ---- Input ---- */
+  .composer{
+    display:flex;
+    gap:10px;
+    padding:16px 26px 22px;
+    border-top:1px solid var(--line);
+  }
+  .composer input{
+    flex:1;
+    border:1px solid var(--line);
+    background:var(--paper);
+    border-radius:3px;
+    padding:12px 14px;
+    font-size:14px;
+    font-family:var(--sans);
+    color:var(--ink);
+    outline:none;
+    transition:border-color .15s;
+  }
+  .composer input:focus{border-color:var(--rust);}
+  .composer button{
+    border:none;
+    background:var(--ink);
+    color:var(--paper);
+    font-family:var(--mono);
+    font-size:12px;
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+    padding:0 20px;
+    border-radius:3px;
+    cursor:pointer;
+    transition:background .15s;
+  }
+  .composer button:hover{background:var(--rust-dark);}
+  .composer button:disabled{background:var(--line); color:var(--muted); cursor:not-allowed;}
+
+  @media (max-width:560px){
+    body{padding:0;}
+    .app{height:100vh; max-height:none; border:none;}
+    .head, .thread, .chips, .composer{padding-left:16px; padding-right:16px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="head">
+    <div>
+      <p class="eyebrow">Task 2 — FAQ Chatbot</p>
+      <h1>StoreHelp</h1>
+      <p>Ask about orders, shipping, returns, payments, or your account.</p>
+    </div>
+    <div class="status"><span class="dot"></span>NLP matcher ready</div>
+  </div>
+
+  <div class="thread" id="thread">
+    <div class="row bot">
+      <div class="avatar">SH</div>
+      <div class="bubble">
+        Hi! I'm the StoreHelp assistant. I match your question against our FAQ library using TF-IDF + cosine similarity. Try asking something below, or tap a suggestion.
+      </div>
+    </div>
+  </div>
+
+  <div class="chips" id="chips"></div>
+
+  <form class="composer" id="composer">
+    <input type="text" id="input" placeholder="e.g. How long does shipping take?" autocomplete="off" />
+    <button type="submit" id="sendBtn">Ask</button>
+  </form>
+</div>
+
+<script>
+const thread = document.getElementById('thread');
+const chips = document.getElementById('chips');
+const form = document.getElementById('composer');
+const input = document.getElementById('input');
+const sendBtn = document.getElementById('sendBtn');
+
+const SUGGESTIONS = [
+  "How can I track my order?",
+  "What's your return policy?",
+  "Do you offer free shipping?",
+  "What payment methods do you accept?"
+];
+
+function renderChips(){
+  chips.innerHTML = '';
+  SUGGESTIONS.forEach(q => {
+    const c = document.createElement('div');
+    c.className = 'chip';
+    c.textContent = q;
+    c.onclick = () => { input.value = q; form.requestSubmit(); };
+    chips.appendChild(c);
+  });
+}
+renderChips();
+
+function scrollToBottom(){
+  thread.scrollTop = thread.scrollHeight;
+}
+
+function addUserMessage(text){
+  const row = document.createElement('div');
+  row.className = 'row user';
+  row.innerHTML = `<div class="avatar">YOU</div><div class="bubble"></div>`;
+  row.querySelector('.bubble').textContent = text;
+  thread.appendChild(row);
+  scrollToBottom();
+}
+
+function addTyping(){
+  const row = document.createElement('div');
+  row.className = 'row bot';
+  row.id = 'typingRow';
+  row.innerHTML = `<div class="avatar">SH</div><div class="bubble"><div class="typing"><span></span><span></span><span></span></div></div>`;
+  thread.appendChild(row);
+  scrollToBottom();
+}
+
+function removeTyping(){
+  const t = document.getElementById('typingRow');
+  if(t) t.remove();
+}
+
+function addBotMessage(result){
+  const row = document.createElement('div');
+  row.className = 'row bot';
+  const isFallback = !result.matched_question;
+  const pct = Math.round((result.score || 0) * 100);
+
+  let metaHtml = '';
+  if(!isFallback){
+    metaHtml = `
+      <div class="match-meta">
+        <span>matched: "${result.matched_question}"</span>
+        <span class="bar"><i style="width:${pct}%"></i></span>
+        <span>${pct}%</span>
+      </div>`;
+  }
+
+  row.innerHTML = `
+    <div class="avatar">SH</div>
+    <div class="bubble ${isFallback ? 'fallback' : ''}">
+      ${result.answer}
+      ${metaHtml}
+    </div>`;
+  thread.appendChild(row);
+  scrollToBottom();
+}
+
+async function sendMessage(message){
+  addUserMessage(message);
+  input.value = '';
+  sendBtn.disabled = true;
+  addTyping();
+
+  try{
+    const res = await fetch('/api/chat', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({message})
+    });
+    const data = await res.json();
+    // small artificial delay so the typing indicator is perceptible
+    await new Promise(r => setTimeout(r, 350));
+    removeTyping();
+    addBotMessage(data);
+  }catch(err){
+    removeTyping();
+    addBotMessage({answer: "Sorry, I couldn't reach the server. Is app.py running?", matched_question: null, score:0});
+  }finally{
+    sendBtn.disabled = false;
+    input.focus();
+  }
+}
+
+form.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const message = input.value.trim();
+  if(!message) return;
+  sendMessage(message);
+});
+
+input.focus();
+</script>
+
+</body>
+</html>

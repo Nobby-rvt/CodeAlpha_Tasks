@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Language Translator</title>
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --card: #ffffff;
+    --border: #e1e4e8;
+    --border-strong: #c9ccd1;
+    --text-primary: #1a1d23;
+    --text-secondary: #6b7280;
+    --accent: #4a47d6;
+    --accent-hover: #3d3ab8;
+    --error-bg: #fdecea;
+    --error-text: #b3261e;
+    --success-bg: #e8f5e9;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    display: flex;
+    justify-content: center;
+    padding: 32px 16px;
+    min-height: 100vh;
+  }
+  .app { width: 100%; max-width: 880px; }
+  h1 { font-size: 24px; font-weight: 600; margin: 0 0 4px; }
+  .subtitle { color: var(--text-secondary); font-size: 14px; margin: 0 0 8px; }
+  .provider-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    border-radius: 20px;
+    margin-bottom: 20px;
+  }
+  .provider-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #34c759;
+  }
+  .provider-dot.offline { background: #c9302c; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .lang-row { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  select {
+    flex: 1;
+    padding: 10px 12px;
+    font-size: 14px;
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    background: var(--card);
+    color: var(--text-primary);
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3e%3cpath d='M6 9l6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 16px;
+    padding-right: 32px;
+  }
+  select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(74,71,214,0.15);
+  }
+  .swap-btn {
+    flex-shrink: 0;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 1px solid var(--border-strong);
+    background: var(--card);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    transition: transform 0.2s ease, background 0.15s ease;
+  }
+  .swap-btn:hover { background: var(--bg); color: var(--accent); }
+  .swap-btn.spin { transform: rotate(180deg); }
+  .panes { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 640px) { .panes { grid-template-columns: 1fr; } }
+  .pane {
+    position: relative;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+  }
+  textarea {
+    width: 100%;
+    min-height: 160px;
+    resize: vertical;
+    border: none;
+    background: transparent;
+    padding: 14px;
+    font-size: 15px;
+    font-family: inherit;
+    line-height: 1.5;
+    color: var(--text-primary);
+  }
+  textarea:focus { outline: none; }
+  .output-text {
+    padding: 14px;
+    font-size: 15px;
+    line-height: 1.5;
+    min-height: 160px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: var(--text-primary);
+  }
+  .output-text.placeholder { color: var(--text-secondary); }
+  .detected-tag {
+    display: none;
+    font-size: 11px;
+    color: var(--accent);
+    background: rgba(74,71,214,0.08);
+    padding: 2px 8px;
+    border-radius: 12px;
+    margin: 10px 14px 0;
+    width: fit-content;
+  }
+  .pane-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    border-top: 1px solid var(--border);
+    margin-top: auto;
+  }
+  .char-count { font-size: 12px; color: var(--text-secondary); }
+  .icon-btn {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .icon-btn:hover { background: rgba(0,0,0,0.06); color: var(--text-primary); }
+  .icon-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .icon-btn svg { width: 16px; height: 16px; }
+  .icon-row { display: flex; gap: 4px; }
+  .actions { display: flex; justify-content: flex-end; margin-top: 16px; }
+  .translate-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 11px 28px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .translate-btn:hover:not(:disabled) { background: var(--accent-hover); }
+  .translate-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255,255,255,0.4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: none;
+  }
+  .translate-btn.loading .spinner { display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .status {
+    margin-top: 14px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    display: none;
+  }
+  .status.error { display: block; background: var(--error-bg); color: var(--error-text); }
+  .status.copied { display: block; background: var(--success-bg); color: #1e7e34; }
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>Language translator</h1>
+  <p class="subtitle">Type or paste text, choose languages, and translate instantly.</p>
+  <div class="provider-badge">
+    <span class="provider-dot" id="providerDot"></span>
+    <span id="providerLabel">Checking backend...</span>
+  </div>
+
+  <div class="card">
+    <div class="lang-row">
+      <select id="sourceLang"></select>
+      <button class="swap-btn" id="swapBtn" title="Swap languages" aria-label="Swap languages">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>
+      </button>
+      <select id="targetLang"></select>
+    </div>
+
+    <div class="panes">
+      <div class="pane">
+        <textarea id="inputText" placeholder="Enter text to translate..." maxlength="5000"></textarea>
+        <div class="pane-footer">
+          <span class="char-count"><span id="charCount">0</span>/5000</span>
+          <div class="icon-row">
+            <button class="icon-btn" id="speakInputBtn" title="Listen to source text" aria-label="Listen to source text">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+            </button>
+            <button class="icon-btn" id="clearBtn" title="Clear text" aria-label="Clear text">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              Clear
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="pane">
+        <div class="output-text placeholder" id="outputText">Translation will appear here...</div>
+        <div class="detected-tag" id="detectedTag"></div>
+        <div class="pane-footer">
+          <span class="char-count" id="outputCharCount"></span>
+          <div class="icon-row">
+            <button class="icon-btn" id="speakOutputBtn" title="Listen to translation" aria-label="Listen to translation" disabled>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+            </button>
+            <button class="icon-btn" id="copyBtn" title="Copy translation" aria-label="Copy translation" disabled>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              Copy
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="translate-btn" id="translateBtn">
+        <span class="spinner"></span>
+        <span id="translateBtnText">Translate</span>
+      </button>
+    </div>
+
+    <div class="status" id="statusBox"></div>
+  </div>
+</div>
+
+<script>
+  // Point this at your backend if it's not served from the same origin as this page.
+  const API_BASE = "";
+
+  const FALLBACK_LANGUAGES = [
+    { code: "en", name: "English" }, { code: "es", name: "Spanish" },
+    { code: "fr", name: "French" }, { code: "de", name: "German" },
+    { code: "it", name: "Italian" }, { code: "pt", name: "Portuguese" },
+    { code: "ru", name: "Russian" }, { code: "zh", name: "Chinese (Simplified)" },
+    { code: "ja", name: "Japanese" }, { code: "ko", name: "Korean" },
+    { code: "ar", name: "Arabic" }, { code: "hi", name: "Hindi" },
+    { code: "ta", name: "Tamil" }, { code: "te", name: "Telugu" },
+    { code: "bn", name: "Bengali" }, { code: "ur", name: "Urdu" },
+    { code: "tr", name: "Turkish" }, { code: "nl", name: "Dutch" },
+    { code: "pl", name: "Polish" }, { code: "vi", name: "Vietnamese" },
+    { code: "th", name: "Thai" }, { code: "id", name: "Indonesian" },
+    { code: "sv", name: "Swedish" }, { code: "el", name: "Greek" },
+    { code: "he", name: "Hebrew" }
+  ];
+
+  const SPEECH_LOCALES = {
+    en: "en-US", es: "es-ES", fr: "fr-FR", de: "de-DE", it: "it-IT",
+    pt: "pt-PT", ru: "ru-RU", zh: "zh-CN", ja: "ja-JP", ko: "ko-KR",
+    ar: "ar-SA", hi: "hi-IN", ta: "ta-IN", te: "te-IN", bn: "bn-IN",
+    ur: "ur-PK", tr: "tr-TR", nl: "nl-NL", pl: "pl-PL", vi: "vi-VN",
+    th: "th-TH", id: "id-ID", sv: "sv-SE", el: "el-GR", he: "he-IL"
+  };
+
+  const sourceLangEl = document.getElementById("sourceLang");
+  const targetLangEl = document.getElementById("targetLang");
+  const inputText = document.getElementById("inputText");
+  const outputText = document.getElementById("outputText");
+  const detectedTag = document.getElementById("detectedTag");
+  const charCount = document.getElementById("charCount");
+  const outputCharCount = document.getElementById("outputCharCount");
+  const translateBtn = document.getElementById("translateBtn");
+  const translateBtnText = document.getElementById("translateBtnText");
+  const swapBtn = document.getElementById("swapBtn");
+  const clearBtn = document.getElementById("clearBtn");
+  const copyBtn = document.getElementById("copyBtn");
+  const speakInputBtn = document.getElementById("speakInputBtn");
+  const speakOutputBtn = document.getElementById("speakOutputBtn");
+  const statusBox = document.getElementById("statusBox");
+  const providerDot = document.getElementById("providerDot");
+  const providerLabel = document.getElementById("providerLabel");
+
+  function populateSelect(el, includeAuto, languages) {
+    el.innerHTML = "";
+    if (includeAuto) {
+      const opt = document.createElement("option");
+      opt.value = "auto";
+      opt.textContent = "Detect language";
+      el.appendChild(opt);
+    }
+    languages.forEach(lang => {
+      const opt = document.createElement("option");
+      opt.value = lang.code;
+      opt.textContent = lang.name;
+      el.appendChild(opt);
+    });
+  }
+
+  function showStatus(message, type) {
+    statusBox.textContent = message;
+    statusBox.className = "status " + type;
+  }
+  function clearStatus() {
+    statusBox.className = "status";
+    statusBox.textContent = "";
+  }
+
+  async function init() {
+    populateSelect(sourceLangEl, true, FALLBACK_LANGUAGES);
+    populateSelect(targetLangEl, false, FALLBACK_LANGUAGES);
+    sourceLangEl.value = "auto";
+    targetLangEl.value = "es";
+
+    try {
+      const res = await fetch(`${API_BASE}/api/health`);
+      const data = await res.json();
+      if (res.ok && data.provider) {
+        providerDot.classList.remove("offline");
+        providerLabel.textContent = `Connected · ${data.provider === "google" ? "Google Translate" : "Microsoft Translator"}`;
+      } else {
+        throw new Error("Backend reachable but no provider configured.");
+      }
+    } catch (err) {
+      providerDot.classList.add("offline");
+      providerLabel.textContent = "Backend not reachable — start the server (see README)";
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/api/languages`);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.languages) && data.languages.length > 0) {
+          const sorted = [...data.languages].sort((a, b) => a.name.localeCompare(b.name));
+          populateSelect(sourceLangEl, true, sorted);
+          populateSelect(targetLangEl, false, sorted);
+          sourceLangEl.value = "auto";
+          const spanish = sorted.find(l => l.code === "es");
+          targetLangEl.value = spanish ? "es" : sorted[0].code;
+        }
+      }
+    } catch (err) {
+      // Fine — fallback list is already populated.
+    }
+  }
+  init();
+
+  inputText.addEventListener("input", () => {
+    charCount.textContent = inputText.value.length;
+  });
+
+  clearBtn.addEventListener("click", () => {
+    inputText.value = "";
+    charCount.textContent = "0";
+    resetOutput();
+    clearStatus();
+    inputText.focus();
+  });
+
+  function resetOutput() {
+    outputText.textContent = "Translation will appear here...";
+    outputText.classList.add("placeholder");
+    outputCharCount.textContent = "";
+    detectedTag.style.display = "none";
+    copyBtn.disabled = true;
+    speakOutputBtn.disabled = true;
+  }
+
+  swapBtn.addEventListener("click", () => {
+    if (sourceLangEl.value === "auto") {
+      showStatus("Can't swap while source is set to \"Detect language\".", "error");
+      return;
+    }
+    swapBtn.classList.add("spin");
+    setTimeout(() => swapBtn.classList.remove("spin"), 200);
+
+    const tempLang = sourceLangEl.value;
+    sourceLangEl.value = targetLangEl.value;
+    targetLangEl.value = tempLang;
+
+    const currentOutput = outputText.classList.contains("placeholder") ? "" : outputText.textContent;
+    if (currentOutput) {
+      inputText.value = currentOutput;
+      charCount.textContent = inputText.value.length;
+      resetOutput();
+    }
+  });
+
+  async function translateText() {
+    const text = inputText.value.trim();
+    clearStatus();
+
+    if (!text) {
+      showStatus("Please enter some text to translate.", "error");
+      return;
+    }
+
+    const sourceCode = sourceLangEl.value;
+    const targetCode = targetLangEl.value;
+
+    if (sourceCode !== "auto" && sourceCode === targetCode) {
+      showStatus("Source and target languages are the same.", "error");
+      return;
+    }
+
+    translateBtn.disabled = true;
+    translateBtn.classList.add("loading");
+    translateBtnText.textContent = "Translating...";
+
+    try {
+      const response = await fetch(`${API_BASE}/api/translate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, source: sourceCode, target: targetCode })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || `Server responded with status ${response.status}`);
+      }
+
+      outputText.textContent = data.translatedText;
+      outputText.classList.remove("placeholder");
+      outputCharCount.textContent = data.translatedText.length + " characters";
+      copyBtn.disabled = false;
+      speakOutputBtn.disabled = false;
+
+      if (sourceCode === "auto" && data.detectedSourceLanguage) {
+        const lang = FALLBACK_LANGUAGES.find(l => l.code === data.detectedSourceLanguage);
+        detectedTag.textContent = `Detected: ${lang ? lang.name : data.detectedSourceLanguage}`;
+        detectedTag.style.display = "block";
+      } else {
+        detectedTag.style.display = "none";
+      }
+    } catch (err) {
+      showStatus("Couldn't translate text: " + err.message, "error");
+      resetOutput();
+    } finally {
+      translateBtn.disabled = false;
+      translateBtn.classList.remove("loading");
+      translateBtnText.textContent = "Translate";
+    }
+  }
+
+  translateBtn.addEventListener("click", translateText);
+
+  inputText.addEventListener("keydown", (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+      translateText();
+    }
+  });
+
+  copyBtn.addEventListener("click", async () => {
+    const text = outputText.textContent;
+    if (!text || outputText.classList.contains("placeholder")) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      showStatus("Translation copied to clipboard.", "copied");
+      setTimeout(clearStatus, 2000);
+    } catch (err) {
+      showStatus("Couldn't copy automatically. Please select and copy manually.", "error");
+    }
+  });
+
+  function speak(text, langCode) {
+    if (!("speechSynthesis" in window)) {
+      showStatus("Text-to-speech isn't supported in this browser.", "error");
+      return;
+    }
+    if (!text) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = SPEECH_LOCALES[langCode] || "en-US";
+    window.speechSynthesis.speak(utterance);
+  }
+
+  speakInputBtn.addEventListener("click", () => {
+    speak(inputText.value.trim(), sourceLangEl.value === "auto" ? "en" : sourceLangEl.value);
+  });
+
+  speakOutputBtn.addEventListener("click", () => {
+    if (outputText.classList.contains("placeholder")) return;
+    speak(outputText.textContent, targetLangEl.value);
+  });
+</script>
+</body>
+</html>
